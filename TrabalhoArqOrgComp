@@ -1,0 +1,275 @@
+.data
+    codigos:   .align 2
+               .space 200    # 50 livros, 4 bytes cada
+    status:    .align 2
+               .space 200    # 50 livros, 4 bytes cada
+    titulos:   .space 1500   # 50 livros, 30 bytes cada
+    qtd:       .word 0       # quantos livros foram cadastrados
+
+    menu:      .asciiz "\n===== BIBLIOTECA =====\n1 - Cadastrar Livro\n2 - Emprestar Livro\n3 - Devolver Livro\n4 - Listar Livros\n5 - Sair\nOpcao: "
+
+    msgTitulo:       .asciiz "Digite o titulo do livro: "
+    msgCodigo:       .asciiz " - Codigo "
+    msgCadOk:        .asciiz "\nLivro cadastrado com sucesso!\n"
+    msgCheia:        .asciiz "\nBiblioteca cheia!\n"
+
+    msgEmprestar:    .asciiz "Digite o codigo do livro a ser emprestado: "
+    msgEmpOk:        .asciiz "\nLivro emprestado com sucesso!\n"
+    msgJaEmp:        .asciiz "\nErro: livro ja esta emprestado!\n"
+
+    msgDevolver:     .asciiz "Digite o codigo do livro a ser devolvido: "
+    msgDevOk:        .asciiz "\nLivro devolvido com sucesso!\n"
+    msgJaDisp:       .asciiz "\nErro: livro ja esta disponivel!\n"
+
+    msgCodLista:     .asciiz "Codigo: "
+    msgSep:          .asciiz " | "
+    msgDisponivel:   .asciiz "Disponivel\n"
+    msgEmprestado:   .asciiz "Emprestado\n"
+    msgVazia:        .asciiz "\nNenhum livro cadastrado ainda.\n"
+
+    msgNaoExiste:    .asciiz "\nErro: codigo nao existe!\n"
+    msgInvalida:     .asciiz "\nOpcao invalida!\n"
+    msgSaindo:       .asciiz "\nEncerrando o sistema...\n"
+
+.text
+.globl main
+
+main:
+menu_loop:
+    li $v0, 4
+    la $a0, menu
+    syscall
+
+    li $v0, 5
+    syscall
+    move $t0, $v0
+
+    beq $t0, 1, cadastrar
+    beq $t0, 2, emprestar
+    beq $t0, 3, devolver
+    beq $t0, 4, listar
+    beq $t0, 5, sair
+
+    li $v0, 4
+    la $a0, msgInvalida
+    syscall
+    j menu_loop
+
+cadastrar:
+    lw  $t0, qtd
+    li  $t1, 50
+    blt $t0, $t1, temEspaco
+
+    li $v0, 4
+    la $a0, msgCheia
+    syscall
+    j menu_loop
+
+temEspaco:
+    li $v0, 4
+    la $a0, msgTitulo
+    syscall
+
+    # calcula o indice em bytes (anda 4 por livro nos int, 30 por livro nos titulos)
+    move $t1, $zero   # indice para codigos/status (pula de 4 em 4)
+    move $t2, $zero   # indice para titulos (pula de 30 em 30)
+    move $t3, $zero   # contador
+
+loopIndCad:
+    beq  $t3, $t0, fimIndCad
+    addi $t1, $t1, 4
+    addi $t2, $t2, 30
+    addi $t3, $t3, 1
+    j loopIndCad
+
+fimIndCad:
+    # guarda o endereco do titulo em $t6 para usar depois
+    la   $t6, titulos
+    add  $t6, $t6, $t2
+
+    # le o titulo e salva no vetor
+    li   $v0, 8
+    move $a0, $t6
+    li   $a1, 30
+    syscall
+
+    # salva codigo e status inicial
+    sw $t0, codigos($t1)
+    sw $zero, status($t1)
+
+    # atualiza a quantidade
+    addi $t0, $t0, 1
+    sw   $t0, qtd
+
+    # imprime confirmacao
+    li   $v0, 4
+    move $a0, $t6
+    syscall
+
+    li $v0, 4
+    la $a0, msgCodigo
+    syscall
+
+    li   $v0, 1
+    addi $a0, $t0, -1
+    syscall
+
+    li $v0, 4
+    la $a0, msgCadOk
+    syscall
+
+    j menu_loop
+
+emprestar:
+    li $v0, 4
+    la $a0, msgEmprestar
+    syscall
+
+    li $v0, 5
+    syscall
+    move $t0, $v0
+
+    # checa se o codigo e valido
+    lw  $t1, qtd
+    blt $t0, $zero, erroNaoExiste
+    bge $t0, $t1, erroNaoExiste
+
+    # calcula o indice em bytes
+    move $t3, $zero
+    move $t4, $zero
+
+loopIndEmp:
+    beq  $t4, $t0, fimIndEmp
+    addi $t3, $t3, 4
+    addi $t4, $t4, 1
+    j loopIndEmp
+
+fimIndEmp:
+    lw $t5, status($t3)
+    beq $t5, 1, erroJaEmp
+
+    # empresta o livro
+    li $t5, 1
+    sw $t5, status($t3)
+
+    li $v0, 4
+    la $a0, msgEmpOk
+    syscall
+    j menu_loop
+
+erroJaEmp:
+    li $v0, 4
+    la $a0, msgJaEmp
+    syscall
+    j menu_loop
+
+erroNaoExiste:
+    li $v0, 4
+    la $a0, msgNaoExiste
+    syscall
+    j menu_loop
+
+devolver:
+    li $v0, 4
+    la $a0, msgDevolver
+    syscall
+
+    li $v0, 5
+    syscall
+    move $t0, $v0
+
+    lw  $t1, qtd
+    blt $t0, $zero, erroNaoExisteDev
+    bge $t0, $t1, erroNaoExisteDev
+
+    # calcula o indice em bytes
+    move $t3, $zero
+    move $t4, $zero
+
+loopIndDev:
+    beq  $t4, $t0, fimIndDev
+    addi $t3, $t3, 4
+    addi $t4, $t4, 1
+    j loopIndDev
+
+fimIndDev:
+    lw $t5, status($t3)
+    beq $t5, 0, erroJaDisp
+
+    # devolve o livro
+    sw $zero, status($t3)
+
+    li $v0, 4
+    la $a0, msgDevOk
+    syscall
+    j menu_loop
+
+erroJaDisp:
+    li $v0, 4
+    la $a0, msgJaDisp
+    syscall
+    j menu_loop
+
+erroNaoExisteDev:
+    li $v0, 4
+    la $a0, msgNaoExiste
+    syscall
+    j menu_loop
+
+listar:
+    lw $t0, qtd
+    bne $t0, $zero, listarLivros
+
+    li $v0, 4
+    la $a0, msgVazia
+    syscall
+    j menu_loop
+
+listarLivros:
+    move $t1, $zero   # indice em bytes
+    move $t2, $zero   # contador
+
+loopLista:
+    beq $t2, $t0, fimLista
+
+    li $v0, 4
+    la $a0, msgCodLista
+    syscall
+
+    lw   $t4, codigos($t1)
+    li   $v0, 1
+    move $a0, $t4
+    syscall
+
+    li $v0, 4
+    la $a0, msgSep
+    syscall
+
+    lw $t4, status($t1)
+    beq $t4, 1, imprimeEmp
+
+    li $v0, 4
+    la $a0, msgDisponivel
+    syscall
+    j proxLivro
+
+imprimeEmp:
+    li $v0, 4
+    la $a0, msgEmprestado
+    syscall
+
+proxLivro:
+    addi $t1, $t1, 4
+    addi $t2, $t2, 1
+    j loopLista
+
+fimLista:
+    j menu_loop
+
+sair:
+    li $v0, 4
+    la $a0, msgSaindo
+    syscall
+
+    li $v0, 10
+    syscall
