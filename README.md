@@ -1,61 +1,55 @@
-Sistema de Gerenciamento de Biblioteca em Assembly MIPS
-Trabalho prático desenvolvido para a disciplina de Arquitetura de Computadores pelo Professor Ederson Naves Fernandes Gonçalves Júnior.
+# Sistema de Gerenciamento de Biblioteca — MIPS Assembly
 
-O objetivo do projeto é aplicar conceitos de baixo nível, como manipulação de vetores paralelos, cálculo manual de ponteiros de memória (offset) e estruturas de repetição utilizando a linguagem Assembly MIPS.
+Trabalho Prático da disciplina de Arquitetura de Computadores  
+IFMG – Campus Ouro Branco  
+Professor: Ederson Naves Fernandes Gonçalves Júnior
 
-🛠️ O que o sistema faz
-O programa roda em um loop principal simulando um menu interativo no terminal. As opções são:
+## Sobre o projeto
 
-Cadastrar Livro: Adiciona um novo livro (limite máximo de 50). O ID/Código é gerado automaticamente com base no índice da memória para evitar erros.
+Sistema de gerenciamento de biblioteca desenvolvido em Assembly MIPS, executado no simulador MARS. O programa permite cadastrar livros, registrar empréstimos e devoluções, e listar a situação atual do acervo.
 
-Emprestar Livro: Altera o status do livro para "Emprestado" após validar se o código existe e se o livro está realmente disponível.
+## Como executar
 
-Devolver Livro: Retorna o status do livro para "Disponível", validando se ele estava previamente emprestado.
+1. Abra o simulador [MARS](http://courses.missouristate.edu/KenVollmar/MARS/)
+2. Vá em **File → Open** e selecione o arquivo `biblioteca.asm`
+3. Clique em **Run → Assemble** (ou F3)
+4. Clique em **Run → Go** (ou F5)
+5. Use a aba **Run I/O** para interagir com o programa
 
-Listar Livros: Varre a memória e exibe na tela o ID, o título e a situação atual de cada livro cadastrado.
+## Funcionalidades
 
-Sair: Encerra a execução do programa.
+| Opção | Descrição |
+|-------|-----------|
+| 1 | Cadastrar um novo livro (título digitado pelo usuário, código gerado automaticamente) |
+| 2 | Emprestar um livro pelo código |
+| 3 | Devolver um livro pelo código |
+| 4 | Listar todos os livros e seus status |
+| 5 | Encerrar o programa |
 
-💾 Estrutura de Dados e Arquitetura
-Como o foco do trabalho foi usar apenas os conceitos iniciais da disciplina, o código foi implementado de forma linear em um único bloco main, controlando o fluxo estritamente por labels e desvios condicionais (beq, bne, blt, j), sem uso de funções/procedimentos complexos ou manipulação de pilha (stack).
+## Estrutura dos dados
 
-Os dados são armazenados na diretiva .data em três vetores paralelos:
+O programa usa 3 vetores paralelos — a mesma posição em cada vetor representa o mesmo livro:
 
-codigos: Inteiros (4 bytes por elemento) que guardam o ID automático do livro.
+- `codigos[]` — código de cada livro (igual ao índice, gerado automaticamente)
+- `status[]` — situação do livro: `0` = Disponível, `1` = Emprestado
+- `titulos[]` — título de cada livro (até 30 caracteres)
 
-status: Inteiros (4 bytes por elemento) onde 0 significa Disponível e 1 Emprestado.
+Capacidade máxima: **50 livros**.
 
-titulos: Espaço alocado de 30 bytes por registro para armazenar strings com os nomes dos livros.
+## Exemplo de uso
 
-Particularidade técnica (Cálculo de Offset)
-Como o MIPS não possui indexação direta de arrays (vetor[i]), o deslocamento de memória foi feito manualmente. Para evitar o uso de instruções pesadas de multiplicação, implementamos um laço de somas sucessivas:
+```
+===== BIBLIOTECA =====
+1 - Cadastrar Livro
+2 - Emprestar Livro
+3 - Devolver Livro
+4 - Listar Livros
+5 - Sair
+Opcao: 1
+Digite o titulo do livro: O Hobbit
+O Hobbit - Codigo 0
+Livro cadastrado com sucesso!
 
-Para os vetores de inteiros (codigos e status), o programa incrementa de 4 em 4 bytes.
-
-Para o vetor de strings (titulos), o incremento é feito de 30 em 30 bytes.
-
-Devido a uma limitação do simulador MARS, o espaço total do vetor de títulos teve que ser declarado com o valor final já calculado estaticamente (1500 bytes para os 50 livros), já que a diretiva .space não aceita expressões matemáticas do tipo 50 * 30.
-
-🚀 Como Executar
-Pré-requisitos
-Ter o simulador MARS (MIPS Assembler and Runtime Simulator) instalado na máquina (requer Java).
-
-Passo a Passo
-Clone o repositório:
-
-Bash
-git clone https://github.com/MateusVon/Trabalho-Arquitetura-e-Organizacao-de-Computadores.git
-Abra o simulador MARS.
-
-Vá em File -> Open e selecione o arquivo do código-fonte (geralmente .asm ou .s).
-
-Aperte a tecla F3 (ou vá em Run -> Assemble) para compilar o código.
-
-Aperte F5 (ou Run -> Go) para iniciar a execução.
-
-Interaja com o sistema utilizando o painel de Run I/O na parte inferior do simulador.
-
-👥 Autores
-Gabriel Henrique Aladim
-
-Mateus Von Sperling
+Opcao: 4
+Codigo: 0 | Disponivel
+```
